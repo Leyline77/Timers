@@ -641,7 +641,7 @@
 				startGlobalInterval();
 			}
 
-			const savedTheme = localStorage.getItem('theme');
+			const savedTheme = localStorage.getItem('theme') || 'dark';  // default to 'dark'
 			applyTheme(savedTheme === 'dark');
 
 			const savedFormat = localStorage.getItem('timeFormat');
@@ -714,5 +714,6 @@
 		}
 	</script>
 </body>
+
 
 </html>
