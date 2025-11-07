@@ -126,7 +126,7 @@
 <body class="bg-gray-100">
 
 	<!-- Message Modal -->
-	<div id="messageModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 hidden">
+	<div id="messageModal" class="fixed inset-0 z-50 flex items-start mt-8 justify-center p-4 bg-black bg-opacity-50 hidden">
 		<div class="modal-content bg-white p-6 rounded-xl shadow-xl max-w-sm w-full text-center">
 			<p id="messageText" class="text-sm font-medium text-gray-800 mb-4"></p>
 			<button id="closeMessageButton"
@@ -137,7 +137,7 @@
 	</div>
 
 	<!-- Export/Import Data Modal -->
-	<div id="dataModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 hidden">
+	<div id="dataModal" class="fixed inset-0 z-50 flex items-start mt-8 justify-center p-4 bg-black bg-opacity-50 hidden">
 		<div class="modal-content bg-white p-6 rounded-xl shadow-xl max-w-lg w-full relative">
 			<div class="flex items-center space-x-1 absolute right-3 top-2">
 				<button id="closeDataModalButton" class="delete-btn text-gray-400 hover:text-red-500 transition-colors">
@@ -150,8 +150,7 @@
 				<textarea id="exportDataTextarea" readonly
 					class="w-full h-48 p-2 border-2 border-gray-300 rounded-lg bg-gray-100 font-mono text-xs"></textarea>
 				<div class="flex justify-end space-x-2 mt-4">
-					<button id="copyDataButton"
-						class="bg-blue-500 text-white text-sm font-semibold py-1.5 px-4 rounded-full shadow-lg hover:bg-blue-600 transition-all">
+					<button id="copyDataButton" class="bg-blue-500 text-white text-sm font-semibold py-1.5 px-4 rounded-full shadow-lg hover:bg-blue-600 transition-all">
 						Copy
 					</button>
 				</div>
@@ -160,8 +159,7 @@
 				<textarea id="importDataTextarea" placeholder="Paste your timer data here..."
 					class="w-full h-48 p-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors text-xs"></textarea>
 				<div class="flex justify-end space-x-2 mt-4">
-					<button id="importDataButton"
-						class="bg-blue-500 text-white text-sm font-semibold py-1.5 px-4 rounded-full shadow-lg hover:bg-green-600 transition-all">
+					<button id="importDataButton" class="bg-blue-500 text-white text-sm font-semibold py-1.5 px-4 rounded-full shadow-lg hover:bg-green-600 transition-all">
 						Import
 					</button>
 				</div>
@@ -170,7 +168,7 @@
 	</div>
 
 	<!-- Create Timer Modal -->
-	<div id="createTimerModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 hidden">
+	<div id="createTimerModal" class="fixed inset-0 z-50 flex items-start mt-8 justify-center p-4 bg-black bg-opacity-50 hidden">
 
 		<div class="modal-content bg-white p-6 rounded-xl shadow-xl max-w-lg w-full relative">
 
@@ -264,7 +262,7 @@
 		let nextTimerId = 1;
 		let timeFormat = 'dhms';
 
-		const timeFormats = ['dhms', 'clock', 'clockD'];
+		const timeFormats = ['dhms', 'dhmsLong', 'clock', 'clockD'];
 
 		// Get all DOM elements
 		const messageModal = document.getElementById('messageModal');
@@ -288,6 +286,18 @@
 		const createTimerModal = document.getElementById('createTimerModal');
 
 		const daysInput = document.getElementById('daysInput');
+
+		const inputs = [
+			document.getElementById('daysInput'),
+			document.getElementById('hoursInput'),
+			document.getElementById('minutesInput'),
+			document.getElementById('secondsInput')
+		];
+
+		inputs.forEach(input => {
+			input.addEventListener('focus', () => input.select());
+		});
+
 
 		const applyTheme = (isDark) => {
 			if (isDark) {
@@ -314,6 +324,8 @@
 					createTimerModal.classList.add('hidden');
 				} else if (!dataModal.classList.contains('hidden')) {
 					dataModal.classList.add('hidden');
+				} else if (!messageModal.classList.contains('hidden')) {
+					messageModal.classList.add('hidden');
 				}
 			}
 		});
@@ -329,17 +341,29 @@
 			let nextIndex = (currentIndex + 1) % timeFormats.length;
 			timeFormat = timeFormats[nextIndex];
 
-			const timerElements = document.querySelectorAll('.timer-start-end');
-
-			if (timeFormat === 'dhms') {
-				timerElements.forEach(el => el.style.display = '');
-			} else {
-				timerElements.forEach(el => el.style.display = 'none');
-			}
-
 			localStorage.setItem('timeFormat', timeFormat);
+
+			formatTimersDo()
+
 			updateTimers();
 		});
+
+		function formatTimersDo() {
+			const timerElements = document.querySelectorAll('.timer-start-end');
+			const timerElementMultiplier = document.querySelectorAll('.time-multiplier');
+
+			if (timeFormat === 'dhms' || timeFormat === 'dhmsLong') {
+				timerElements.forEach(el => el.classList.remove('hidden'));
+			} else {
+				timerElements.forEach(el => el.classList.add('hidden'));
+			}
+
+			if (timeFormat === 'dhmsLong') {
+				timerElementMultiplier.forEach(el => el.classList.add('hidden'));
+			} else {
+				timerElementMultiplier.forEach(el => el.classList.remove('hidden'));
+			}
+		}
 
 		function showMessage(text) {
 			messageText.textContent = text;
@@ -367,12 +391,16 @@
 			const time = formatTime(seconds);
 
 			if (timeFormat === 'clock') {
-				return `${String(time.d*24+time.h).padStart(2, '0')}:${String(time.m).padStart(2, '0')}:${String(time.s).padStart(2, '0')}`;
+				formattedTimeString = `${String(time.d*24+time.h).padStart(2, '0')}:${String(time.m).padStart(2, '0')}:${String(time.s).padStart(2, '0')}`;
 			} else if (timeFormat === 'clockD') {
-				return `${String(time.d).padStart(2, '0')}d \u00A0\u00A0\u00A0\u00A0\u00A0 ${String(time.h).padStart(2, '0')}:${String(time.m).padStart(2, '0')}:${String(time.s).padStart(2, '0')}`;
+				formattedTimeString = `${String(time.d).padStart(2, '0')}d \u00A0\u00A0\u00A0\u00A0\u00A0 ${String(time.h).padStart(2, '0')}:${String(time.m).padStart(2, '0')}:${String(time.s).padStart(2, '0')}`;
 			} else {
-				return `${String(time.d).padStart(2, '0')}d ${String(time.h).padStart(2, '0')}h ${String(time.m).padStart(2, '0')}m ${String(time.s).padStart(2, '0')}s`;
+				formattedTimeString = `${String(time.d).padStart(2, '0')}d ${String(time.h).padStart(2, '0')}h ${String(time.m).padStart(2, '0')}m ${String(time.s).padStart(2, '0')}s`;
+				// if (timeFormat === 'dhmsLong') {
+				// 	formattedTimeString = ` ${formattedTimeString} (no speed)`;
+				// }
 			}
+			return formattedTimeString;
 		};
 
 		const formatDateTime = (timestamp) => {
@@ -394,7 +422,7 @@
 
 			const now = Date.now();
 			const timeLeft = Math.max(0, Math.floor((timer.endTime - now) / 1000));
-			const percentage = timer.duration > 0 ? (timeLeft / timer.duration) * 100 : 0;
+			const percentage = timer.duration > 0 ? 100 - (timeLeft / timer.duration) * 100 : 0;
 
 			card.innerHTML = `
 				<div class="flex items-center justify-center mb-1 relative">
@@ -421,6 +449,12 @@
 				</div>
 			`;
 
+			const editBtn = card.querySelector('.edit-btn');
+			editBtn.addEventListener('click', () => editTimer(timer.id));
+
+			const deleteBtn = card.querySelector('.delete-btn');
+			deleteBtn.addEventListener('click', () => deleteTimer(timer.id));
+
 			return card;
 		};
 
@@ -430,13 +464,13 @@
 
 			timers.forEach(timer => {
 				const timeLeft = Math.max(0, Math.floor((timer.endTime - now) / 1000));
-				const percentage = timer.duration > 0 ? (timeLeft / timer.duration) * 100 : 0;
+				const percentage = timer.duration > 0 ? 100 - (timeLeft / timer.duration) * 100 : 0;
 
 				const displayEl = document.getElementById(`display-${timer.id}`);
 				const progressEl = document.getElementById(`progress-${timer.id}`);
 
 				if (displayEl && progressEl) {
-					displayEl.textContent = formatTimeString(timeLeft);
+					displayEl.textContent = formatTimeString((timeFormat === 'dhmsLong') ? timeLeft * timer.multiplier : timeLeft);
 					progressEl.style.width = `${percentage}%`;
 
 					if (timeLeft > 0) {
@@ -520,12 +554,6 @@
 			const card = createTimerCard(timer);
 			timersContainer.appendChild(card);
 
-			const editBtn = card.querySelector('.edit-btn');
-			editBtn.addEventListener('click', () => editTimer(timer.id));
-
-			const deleteBtn = card.querySelector('.delete-btn');
-			deleteBtn.addEventListener('click', () => deleteTimer(timer.id));
-
 			startGlobalInterval();
 			saveState();
 
@@ -581,6 +609,7 @@
 			const exportTextarea = document.getElementById('exportDataTextarea');
 			exportTextarea.select();
 			document.execCommand('copy');
+			dataModal.classList.add('hidden');
 			showMessage('Copied to clipboard!');
 		});
 
@@ -602,10 +631,6 @@
 						timers.forEach(timer => {
 							const card = createTimerCard(timer);
 							timersContainer.appendChild(card);
-							const editBtn = card.querySelector('.edit-btn');
-							editBtn.addEventListener('click', () => editTimer(timer.id));
-							const deleteBtn = card.querySelector('.delete-btn');
-							deleteBtn.addEventListener('click', () => deleteTimer(timer.id));
 						});
 
 						if (timers.length > 0) {
@@ -633,16 +658,17 @@
 				timers.forEach(timer => {
 					const card = createTimerCard(timer);
 					timersContainer.appendChild(card);
-					const editBtn = card.querySelector('.edit-btn');
-					editBtn.addEventListener('click', () => editTimer(timer.id));
-					const deleteBtn = card.querySelector('.delete-btn');
-					deleteBtn.addEventListener('click', () => deleteTimer(timer.id));
 				});
 				startGlobalInterval();
+
+				setInterval(() => {
+					formatTimersDo();
+				}, 50);
 			}
 
 			const savedTheme = localStorage.getItem('theme') || 'dark';  // default to 'dark'
 			applyTheme(savedTheme === 'dark');
+
 
 			const savedFormat = localStorage.getItem('timeFormat');
 			if (savedFormat) {
@@ -715,6 +741,4 @@
 	</script>
 </body>
 
-
 </html>
-
