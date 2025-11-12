@@ -48,6 +48,10 @@
 			user-select: none;
 		}
 
+		.drag-handle .material-symbols-outlined {
+			font-size: 2rem;
+		}
+
 		.drag-handle:active {
 			cursor: grabbing;
 		}
@@ -450,31 +454,35 @@
 			const percentage = timer.duration > 0 ? 100 - (timeLeft / timer.duration) * 100 : 0;
 
 			// drag handle, implement later
-			// <div class="drag-handle flex items-center pr-2" draggable="true">
-			// 	<span class="material-symbols-outlined text-gray-400">drag_indicator</span>
-			// </div>
 			card.innerHTML = `
-				<div class="flex items-center justify-center mb-1 relative">
-					<div class="timer-start-end flex items-center space-x-1 mb-1">
-						<span class="time-value text-xs font-medium text-gray-700">${formatDateTime(timer.startTime)}</span>
-						<span class="time-label text-xs text-gray-500">-</span>
-						<span class="time-value text-xs font-medium text-gray-700">${formatDateTime(timer.endTime)}</span>
-						<span class="time-multiplier text-xs text-purple-600 font-semibold">(${timer.multiplier}x speed)</span>
+				<div class="flex items-start">
+					<div class="drag-handle flex items-center pr-2 pt-1">
+						<span class="material-symbols-outlined text-gray-400">drag_indicator</span>
 					</div>
-					<div class="flex items-center space-x-1 absolute right-0">
-						<button class="edit-btn text-gray-400 hover:text-blue-500 transition-colors" data-timer-id="${timer.id}">
-							<span class="material-symbols-outlined">content_copy</span>
-						</button>
-						<button class="delete-btn text-gray-400 hover:text-red-500 transition-colors" data-timer-id="${timer.id}">
-							<span class="material-symbols-outlined">close</span>
-						</button>
+					<div class="flex-1">
+						<div class="flex items-center justify-center mb-1 relative">
+							<div class="timer-start-end flex items-center space-x-1 mb-1">
+								<span class="time-value text-xs font-medium text-gray-700">${formatDateTime(timer.startTime)}</span>
+								<span class="time-label text-xs text-gray-500">-</span>
+								<span class="time-value text-xs font-medium text-gray-700">${formatDateTime(timer.endTime)}</span>
+								<span class="time-multiplier text-xs text-purple-600 font-semibold">(${timer.multiplier}x speed)</span>
+							</div>
+							<div class="flex items-center space-x-1 absolute right-0">
+								<button class="edit-btn text-gray-400 hover:text-blue-500 transition-colors" data-timer-id="${timer.id}">
+									<span class="material-symbols-outlined">content_copy</span>
+								</button>
+								<button class="delete-btn text-gray-400 hover:text-red-500 transition-colors" data-timer-id="${timer.id}">
+									<span class="material-symbols-outlined">close</span>
+								</button>
+							</div>
+						</div>
+						<div class="text-center mb-2">
+							<div class="main-display text-l font-bold text-gray-800" id="display-${timer.id}">${formatTimeString(timeLeft)}</div>
+						</div>
+						<div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden shadow-inner">
+							<div id="progress-${timer.id}" class="progress-bar bg-blue-500 h-full rounded-full transition-all duration-1000 ease-linear" style="width: ${percentage}%;"></div>
+						</div>
 					</div>
-				</div>
-				<div class="text-center mb-2">
-					<div class="main-display text-l font-bold text-gray-800" id="display-${timer.id}">${formatTimeString(timeLeft)}</div>
-				</div>
-				<div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden shadow-inner">
-					<div id="progress-${timer.id}" class="progress-bar bg-blue-500 h-full rounded-full transition-all duration-1000 ease-linear" style="width: ${percentage}%;"></div>
 				</div>
 			`;
 
