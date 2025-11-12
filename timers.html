@@ -49,7 +49,7 @@
 		}
 
 		.drag-handle .material-symbols-outlined {
-			font-size: 2rem;
+			font-size: 1.6rem;
 		}
 
 		.drag-handle:active {
@@ -454,16 +454,18 @@
 			const percentage = timer.duration > 0 ? 100 - (timeLeft / timer.duration) * 100 : 0;
 
 			// drag handle, implement later
+			// <span class="time-value text-xs font-medium text-gray-700">${formatDateTime(timer.startTime)}</span>
+			// <span class="time-label text-xs text-gray-500">-</span>
+
 			card.innerHTML = `
 				<div class="flex items-start">
-					<div class="drag-handle flex items-center pr-2 pt-1">
+					<div class="drag-handle flex items-center pr-2 pt-3">
 						<span class="material-symbols-outlined text-gray-400">drag_indicator</span>
 					</div>
 					<div class="flex-1">
 						<div class="flex items-center justify-center mb-1 relative">
 							<div class="timer-start-end flex items-center space-x-1 mb-1">
-								<span class="time-value text-xs font-medium text-gray-700">${formatDateTime(timer.startTime)}</span>
-								<span class="time-label text-xs text-gray-500">-</span>
+								<span class="time-label text-xs text-gray-500">Complete: </span>
 								<span class="time-value text-xs font-medium text-gray-700">${formatDateTime(timer.endTime)}</span>
 								<span class="time-multiplier text-xs text-purple-600 font-semibold">(${timer.multiplier}x speed)</span>
 							</div>
@@ -797,79 +799,7 @@
 		let touchStartY = 0;
 		let placeholder = null;
 
-		container.addEventListener("dragstart", e => {
-			if (!e.target.classList.contains("card")) return;
-			e.target.classList.add("dragging");
-		});
-
-		container.addEventListener("touchstart", e => {
-			const handle = e.target.closest('.drag-handle');
-			if (!handle) return;
-
-			draggedElement = handle.closest('.card');
-			touchStartY = e.touches[0].clientY;
-
-			draggedElement.classList.add('dragging');
-
-			// Create placeholder
-			placeholder = draggedElement.cloneNode(true);
-			placeholder.style.opacity = '0.3';
-			placeholder.style.pointerEvents = 'none';
-		}, { passive: true });
-
-		container.addEventListener("touchmove", e => {
-			if (!draggedElement) return;
-
-			const touch = e.touches[0];
-			const cards = [...container.querySelectorAll(".card:not(.dragging)")];
-
-			const startRects = new Map(cards.map(el => [el, el.getBoundingClientRect()]));
-
-			const afterElement = getDragAfterElement(container, touch.clientY);
-			if (afterElement == null) {
-				container.appendChild(draggedElement);
-			} else {
-				container.insertBefore(draggedElement, afterElement);
-			}
-
-			const endRects = new Map(cards.map(el => [el, el.getBoundingClientRect()]));
-
-			cards.forEach(el => {
-				const start = startRects.get(el);
-				const end = endRects.get(el);
-				const deltaY = start.top - end.top;
-				if (deltaY !== 0) {
-					el.style.transform = `translateY(${deltaY}px)`;
-					el.style.transition = "none";
-					el.getBoundingClientRect();
-					el.style.transition = "transform 350ms ease";
-					el.style.transform = "";
-				}
-			});
-		}, { passive: true });
-
-		container.addEventListener("touchend", e => {
-			if (!draggedElement) return;
-
-			draggedElement.classList.remove('dragging');
-			if (placeholder && placeholder.parentNode) {
-				placeholder.remove();
-			}
-
-			draggedElement = null;
-			placeholder = null;
-
-			saveState(); // Save the new order
-		}, { passive: true });
-
-		container.addEventListener("dragend", e => {
-			if (!e.target.classList.contains("card")) return;
-			e.target.classList.remove("dragging");
-			saveState(); // Save the new order
-		});
-
-		container.addEventListener("dragover", e => {
-			e.preventDefault();
+		function handleDragMove(clientY) {
 			const dragging = document.querySelector(".dragging");
 			if (!dragging) return;
 
@@ -879,7 +809,7 @@
 			const startRects = new Map(cards.map(el => [el, el.getBoundingClientRect()]));
 
 			// Reinsert dragged card in new position
-			const afterElement = getDragAfterElement(container, e.clientY);
+			const afterElement = getDragAfterElement(container, clientY);
 			if (afterElement == null) {
 				container.appendChild(dragging);
 			} else {
@@ -903,7 +833,58 @@
 					el.style.transform = ""; // play
 				}
 			});
+		}
+
+		container.addEventListener("dragover", e => {
+			e.preventDefault();
+			handleDragMove(e.clientY);
 		});
+
+		container.addEventListener("touchmove", e => {
+			if (!draggedElement) return;
+			const touch = e.touches[0];
+			handleDragMove(touch.clientY);
+		}, { passive: true });
+
+		container.addEventListener("dragstart", e => {
+			if (!e.target.classList.contains("card")) return;
+			e.target.classList.add("dragging");
+		});
+
+		container.addEventListener("touchstart", e => {
+			const handle = e.target.closest('.drag-handle');
+			if (!handle) return;
+
+			draggedElement = handle.closest('.card');
+			touchStartY = e.touches[0].clientY;
+
+			draggedElement.classList.add('dragging');
+
+			// Create placeholder
+			placeholder = draggedElement.cloneNode(true);
+			placeholder.style.opacity = '0.3';
+			placeholder.style.pointerEvents = 'none';
+		}, { passive: true });
+
+		container.addEventListener("dragend", e => {
+			if (!e.target.classList.contains("card")) return;
+			e.target.classList.remove("dragging");
+			saveState(); // Save the new order
+		});
+
+		container.addEventListener("touchend", e => {
+			if (!draggedElement) return;
+
+			draggedElement.classList.remove('dragging');
+			if (placeholder && placeholder.parentNode) {
+				placeholder.remove();
+			}
+
+			draggedElement = null;
+			placeholder = null;
+
+			saveState(); // Save the new order
+		}, { passive: true });
 
 		function getDragAfterElement(container, y) {
 			const GAP_FACTOR = 0.01; // adjust for sensitivity
