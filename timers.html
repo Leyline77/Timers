@@ -148,7 +148,7 @@
 <body class="bg-gray-100">
 
 	<!-- Message Modal -->
-	<div id="messageModal" class="fixed inset-0 z-99 flex items-start mt-8 justify-center p-4 bg-black bg-opacity-50 hidden">
+	<div id="messageModal" class="modal-overlay hidden z-99">
 		<div class="modal-content bg-white p-6 rounded-xl shadow-xl max-w-sm w-full text-center">
 			<p id="messageText" class="text-sm font-medium text-gray-800 mb-4"></p>
 			<button id="closeMessageButton"
@@ -159,7 +159,7 @@
 	</div>
 
 	<!-- Export/Import Data Modal -->
-	<div id="dataModal" class="fixed inset-0 z-50 flex items-start mt-8 justify-center p-4 bg-black bg-opacity-50 hidden">
+	<div id="dataModal" class="modal-overlay hidden">
 		<div class="modal-content bg-white p-6 rounded-xl shadow-xl max-w-lg w-full relative">
 			<div class="flex items-center space-x-1 absolute right-3 top-2">
 				<button id="closeDataModalButton" class="delete-btn text-gray-400 hover:text-red-500 transition-colors">
@@ -197,7 +197,7 @@
 	</div>
 
 	<!-- Create Timer Modal -->
-	<div id="createTimerModal" class="fixed inset-0 z-50 flex items-start mt-8 justify-center p-4 bg-black bg-opacity-50 hidden">
+	<div id="createTimerModal" class="modal-overlay hidden">
 
 		<div class="modal-content bg-white p-6 rounded-xl shadow-xl max-w-lg w-full relative">
 
@@ -694,6 +694,25 @@
 		}
 
 		window.addEventListener('load', () => {
+			/*Apple the same classes for all modals*/
+			const modalOverlayClasses = [
+				'fixed',
+				'inset-0',
+				'z-50',
+				'flex',
+				'items-start',
+				'p-10',
+				'justify-center',
+				'bg-black/70',
+				'backdrop-blur-md',
+				'hidden'
+			];
+			// const modalContentClasses = "modal-content bg-white rounded-xl shadow-xl p-6 max-w-lg w-full relative";
+
+			document.querySelectorAll('.modal-overlay').forEach(div => {
+				div.classList.add(...modalOverlayClasses);
+			});
+
 			initCards();
 
 			const savedTheme = localStorage.getItem('theme') || 'dark';  // default to 'dark'
