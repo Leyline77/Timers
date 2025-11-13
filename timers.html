@@ -148,7 +148,7 @@
 <body class="bg-gray-100">
 
 	<!-- Message Modal -->
-	<div id="messageModal" class="fixed inset-0 z-50 flex items-start mt-8 justify-center p-4 bg-black bg-opacity-50 hidden">
+	<div id="messageModal" class="fixed inset-0 z-99 flex items-start mt-8 justify-center p-4 bg-black bg-opacity-50 hidden">
 		<div class="modal-content bg-white p-6 rounded-xl shadow-xl max-w-sm w-full text-center">
 			<p id="messageText" class="text-sm font-medium text-gray-800 mb-4"></p>
 			<button id="closeMessageButton"
@@ -534,8 +534,6 @@
 				clearInterval(globalInterval);
 				globalInterval = null;
 			}
-
-			//saveState();
 		};
 
 		const startGlobalInterval = () => {
@@ -545,9 +543,6 @@
 		};
 
 		const editTimer = (timerId) => {
-			// Upgrade to use the card, and it's index - maybe to reduce timer-id
-			// const cardIndex = [...timersContainer.children].indexOf(card);
-			// const timer = timers[cardIndex];
 			const timer = timers.find(t => t.id === timerId);
 			if (!timer) return;
 
@@ -586,7 +581,6 @@
 
 			//preserving nextTimerID after load is important so deleted id's are not re-used
 			const timer = {
-				id: nextTimerId++,
 				startTime,
 				endTime,
 				duration: actualDuration,
@@ -594,19 +588,17 @@
 			};
 
 			timers.push(timer);
-			const card = createTimerCard(timer);
-			timersContainer.appendChild(card);
 
-			startGlobalInterval();
-			saveState();
+			saveState(saveRaw=true);
+
+			initCards();
 
 			createTimerModal.classList.add('hidden');
-			//daysInput.select();
-
 		});
 
 		const deleteTimer = (timerId) => {
 			timers = timers.filter(t => t.id !== timerId);
+			//we could splice out the timer from the js Array, but saveState is handling that already...
 			const card = document.getElementById(`timer-${timerId}`);
 			if (card) {
 				card.remove();
@@ -614,21 +606,35 @@
 			saveState();
 		};
 
-		const saveState = () => {
-			// Save timer order based on DOM order, excluding IDs
-			const orderedTimers = [...document.querySelectorAll('.card')].map(card => {
-				const timerId = parseInt(card.id.replace('timer-', ''));
-				const timer = timers.find(t => t.id === timerId);
-				if (!timer) return null;
+		const devTimerIds = () => {
+			var saveTimers;
 
-				// Return timer without the id
-				const { id, ...timerWithoutId } = timer;
-				return timerWithoutId;
-			}).filter(Boolean);
+			saveTimers = [...document.querySelectorAll('.card')].map(card => {
+				return card.id;
+			});
 
-			console.log("savestate-orderedtimers", orderedTimers);
+			console.log("devTimerIds", saveTimers);
+		}
 
-			localStorage.setItem('timerState', JSON.stringify({ timers: orderedTimers }));
+		const saveState = (saveRaw=false) => {
+			var saveTimers;
+
+			if (!saveRaw) {
+				// Save timer order based on DOM order, excluding IDs
+				saveTimers = [...document.querySelectorAll('.card')].map(card => {
+					const timerId = parseInt(card.id.replace('timer-', ''));
+					const timer = timers.find(t => t.id === timerId);
+					if (!timer) return null;
+
+					// Return timer without the id
+					const { id, ...timerWithoutId } = timer;
+					return timerWithoutId;
+				}).filter(Boolean);
+			} else {
+				saveTimers = timers.map(({ id, ...timer }) => timer);
+			}
+
+			localStorage.setItem('timerState', JSON.stringify({ timers: saveTimers }));
 		};
 
 		const loadState = () => {
@@ -670,6 +676,8 @@
 			timers = loadState();
 
 			if (timers.length > 0) {
+				timersContainer.innerHTML = '';
+
 				nextTimerId = 0;
 				timers.forEach(timer => {
 					const card = createTimerCard(timer);
@@ -680,21 +688,16 @@
 				setInterval(() => {
 					formatTimersDo();
 				}, 50);
-			}
 
-			if (timers.length > 0) {
 				startGlobalInterval();
 			}
-
 		}
 
 		window.addEventListener('load', () => {
-
 			initCards();
 
 			const savedTheme = localStorage.getItem('theme') || 'dark';  // default to 'dark'
 			applyTheme(savedTheme === 'dark');
-
 
 			const savedFormat = localStorage.getItem('timeFormat');
 			if (savedFormat) {
@@ -786,11 +789,10 @@
 					}
 
 					if (data && data.timers && Array.isArray(data.timers)) {
-						timersContainer.innerHTML = '';
 						timers = data.timers;
 
 						//save the imported data
-						localStorage.setItem('timerState', JSON.stringify({ timers }));
+						saveState(saveRaw=true)
 
 						initCards();
 
