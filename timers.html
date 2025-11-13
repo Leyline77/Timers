@@ -545,6 +545,9 @@
 		};
 
 		const editTimer = (timerId) => {
+			// Upgrade to use the card, and it's index - maybe to reduce timer-id
+			// const cardIndex = [...timersContainer.children].indexOf(card);
+			// const timer = timers[cardIndex];
 			const timer = timers.find(t => t.id === timerId);
 			if (!timer) return;
 
@@ -581,6 +584,7 @@
 			const startTime = Date.now();
 			const endTime = startTime + (actualDuration * 1000);
 
+			//preserving nextTimerID after load is important so deleted id's are not re-used
 			const timer = {
 				id: nextTimerId++,
 				startTime,
@@ -611,16 +615,20 @@
 		};
 
 		const saveState = () => {
+			// Save timer order based on DOM order, excluding IDs
 			const orderedTimers = [...document.querySelectorAll('.card')].map(card => {
 				const timerId = parseInt(card.id.replace('timer-', ''));
-				return timers.find(t => t.id === timerId);
+				const timer = timers.find(t => t.id === timerId);
+				if (!timer) return null;
+
+				// Return timer without the id
+				const { id, ...timerWithoutId } = timer;
+				return timerWithoutId;
 			}).filter(Boolean);
 
-			timers = orderedTimers;
+			console.log("savestate-orderedtimers", orderedTimers);
 
-			console.log(timers);
-
-			localStorage.setItem('timerState', JSON.stringify({ timers, nextTimerId }));
+			localStorage.setItem('timerState', JSON.stringify({ timers: orderedTimers }));
 		};
 
 		const loadState = () => {
@@ -628,8 +636,13 @@
 			if (storedState) {
 				try {
 					const data = JSON.parse(storedState);
-					nextTimerId = data.nextTimerId || 1;
-					return data.timers || [];
+					// Renumber timers from 1 to n
+					const loadedTimers = (data.timers || []).map((timer, index) => ({
+						...timer,
+						id: index + 1
+					}));
+					nextTimerId = loadedTimers.length + 1;
+					return loadedTimers;
 				} catch (e) {
 					console.error("Failed to parse localStorage data:", e);
 				}
@@ -653,10 +666,11 @@
 			showMessage('Copied to clipboard!');
 		});
 
-		window.addEventListener('load', () => {
+		function initCards() {
 			timers = loadState();
 
 			if (timers.length > 0) {
+				nextTimerId = 0;
 				timers.forEach(timer => {
 					const card = createTimerCard(timer);
 					timersContainer.appendChild(card);
@@ -667,6 +681,16 @@
 					formatTimersDo();
 				}, 50);
 			}
+
+			if (timers.length > 0) {
+				startGlobalInterval();
+			}
+
+		}
+
+		window.addEventListener('load', () => {
+
+			initCards();
 
 			const savedTheme = localStorage.getItem('theme') || 'dark';  // default to 'dark'
 			applyTheme(savedTheme === 'dark');
@@ -705,7 +729,7 @@
 				qrCodeContainer.classList.remove('hidden');
 				qrCodeContainer.innerHTML = '<div id="qrcode"></div>';
 
-				const compressed = compressData({ timers, nextTimerId });
+				const compressed = compressData({ timers });
 
 				// Show compressed string in textarea while QR is visible
 				document.getElementById('exportDataTextarea').value = compressed;
@@ -721,7 +745,8 @@
 				qrCodeContainer.classList.add('hidden');
 
 				// Restore raw JSON when hiding QR
-				document.getElementById('exportDataTextarea').value = JSON.stringify({ timers, nextTimerId }, null, 2);
+				const timersWithoutIds = timers.map(({ id, ...timer }) => timer);
+				document.getElementById('exportDataTextarea').value = JSON.stringify({ "timers": timersWithoutIds }, null, 2);
 
 				toggleQRButton.textContent = 'Show QR Code';
 			}
@@ -736,7 +761,8 @@
 			importDataContainer.classList.add('hidden');
 
 			// Always show raw JSON in textarea
-			document.getElementById('exportDataTextarea').value = JSON.stringify({ timers, nextTimerId }, null, 2);
+			const timersWithoutIds = timers.map(({ id, ...timer }) => timer);
+			document.getElementById('exportDataTextarea').value = JSON.stringify({ "timers": timersWithoutIds }, null, 2);
 
 			qrCodeContainer.classList.add('hidden');
 			toggleQRButton.textContent = 'Show QR Code';
@@ -760,27 +786,17 @@
 					}
 
 					if (data && data.timers && Array.isArray(data.timers)) {
-						timers.forEach(timer => {
-							const card = document.getElementById(`timer-${timer.id}`);
-							if (card) card.remove();
-						});
-
-						timers = data.timers;
-						nextTimerId = data.nextTimerId || 1;
-
 						timersContainer.innerHTML = '';
-						timers.forEach(timer => {
-							const card = createTimerCard(timer);
-							timersContainer.appendChild(card);
-						});
+						timers = data.timers;
 
-						if (timers.length > 0) {
-							startGlobalInterval();
-						}
+						//save the imported data
+						localStorage.setItem('timerState', JSON.stringify({ timers }));
 
-						saveState();
+						initCards();
+
 						dataModal.classList.add('hidden');
-						showMessage('Timers imported successfully!');
+						//todo add an optional timer fade to showMessage
+						//showMessage('Timers imported successfully!', 5000);
 					} else {
 						showMessage('Invalid timer data format.');
 					}
