@@ -624,7 +624,9 @@
 			};
 
 			if (editingTimerId !== null) {
-				Object.assign(timers.find(t => t.id === editingTimerId), timer);
+				//remove the duration from save so the original duration applies to the progress bar.
+				const { duration, ...timerUpdate } = timer;
+				Object.assign(timers.find(t => t.id === editingTimerId), timerUpdate);
 				editingTimerId = null; // Clear it
 			} else {
 				timers.push(timer);
