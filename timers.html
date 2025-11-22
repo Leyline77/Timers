@@ -207,6 +207,11 @@
 				</button>
 			</div>
 
+			<div class="mb-4">
+				<input type="text" id="labelInput" placeholder="Timer Name" maxlength="30"
+					class="input-field w-full px-8 py-1.5 text-center text-sm font-medium rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+			</div>
+
 			<div class="flex items-center justify-center space-x-3 mb-4">
 				<div class="flex flex-col items-center">
 					<label class="input-label text-xs text-gray-500 mb-1">Days</label>
@@ -235,7 +240,7 @@
 					<button id="startButton"
 						class="bg-blue-500 text-white text-sm font-semibold py-2 px-6 rounded-full shadow-lg hover:bg-blue-600 transition-all transform hover:scale-105 active:scale-95 flex items-center space-x-2">
 						<span class="material-symbols-outlined">play_circle</span>
-						<span>Start Timer</span>
+						<span>Save / Start</span>
 					</button>
 				</div>
 				<div class="flex flex-col items-center">
@@ -250,6 +255,13 @@
 						<option value="5">5x</option>
 						<option value="6">6x</option>
 					</select>
+				</div>
+				<div class="flex flex-col items-center mt-5">
+					<button id="cloneTimerButton"
+						class="bg-grey-500 text-white text-sm font-semibold py-2 px-6 rounded-full shadow-lg hover:bg-green-600 transition-all transform hover:scale-105 active:scale-95 flex items-center space-x-2">
+						<span class="material-symbols-outlined">content_copy</span>
+						<span>Clone</span>
+					</button>
 				</div>
 			</div>
 		</div>
@@ -291,6 +303,8 @@
 		let nextTimerId = 1;
 		let timeFormat = 'dhms';
 
+		let editingTimerId = null;
+
 		const timeFormats = ['dhms', 'dhmsLong', 'clock', 'clockD'];
 
 		// Get all DOM elements
@@ -308,25 +322,30 @@
 		const importDataTextarea = document.getElementById('importDataTextarea');
 		const timersContainer = document.getElementById('timersContainer');
 		const startButton = document.getElementById('startButton');
+		const cloneTimerButton = document.getElementById('cloneTimerButton');
 		const exportButton = document.getElementById('exportButton');
 		const importButton = document.getElementById('importButton');
 		const openCreateButton = document.getElementById('openCreateButton');
 		const closeCreateModalButton = document.getElementById('closeCreateModalButton');
 		const createTimerModal = document.getElementById('createTimerModal');
 
+		const labelInput = document.getElementById('labelInput');
 		const daysInput = document.getElementById('daysInput');
+		const hoursInput = document.getElementById('hoursInput');
+		const minutesInput = document.getElementById('minutesInput');
+		const secondsInput = document.getElementById('secondsInput');
 
 		const inputs = [
-			document.getElementById('daysInput'),
-			document.getElementById('hoursInput'),
-			document.getElementById('minutesInput'),
-			document.getElementById('secondsInput')
+			labelInput
+			, daysInput
+			, hoursInput
+			, minutesInput
+			, secondsInput
 		];
 
 		inputs.forEach(input => {
 			input.addEventListener('focus', () => input.select());
 		});
-
 
 		const applyTheme = (isDark) => {
 			if (isDark) {
@@ -339,12 +358,22 @@
 		};
 
 		openCreateButton.addEventListener('click', () => {
+			cloneTimerButton.classList.add('hidden');
 			createTimerModal.classList.remove('hidden');
+
+			labelInput.value = '';
+			daysInput.value = 0;
+			hoursInput.value = 0;
+			minutesInput.value = 0;
+			secondsInput.value = 0;
+			//document.getElementById('multiplierSelect').value = timer.multiplier;
+
 			daysInput.select();
 		});
 
 		closeCreateModalButton.addEventListener('click', () => {
 			createTimerModal.classList.add('hidden');
+			openCreateButton.focus();
 		});
 
 		document.addEventListener('keydown', (e) => {
@@ -356,6 +385,7 @@
 				} else if (!messageModal.classList.contains('hidden')) {
 					messageModal.classList.add('hidden');
 				}
+				openCreateButton.focus();
 			}
 		});
 
@@ -401,10 +431,12 @@
 
 		closeMessageButton.addEventListener('click', () => {
 			messageModal.classList.add('hidden');
+			openCreateButton.focus();
 		});
 
 		document.getElementById('closeDataModalButton').addEventListener('click', () => {
 			dataModal.classList.add('hidden');
+			openCreateButton.focus();
 		});
 
 		const formatTime = (seconds) => {
@@ -471,7 +503,7 @@
 							</div>
 							<div class="flex items-center space-x-1 absolute right-0">
 								<button class="edit-btn text-gray-400 hover:text-blue-500 transition-colors" data-timer-id="${timer.id}">
-									<span class="material-symbols-outlined">content_copy</span>
+									<span class="material-symbols-outlined">edit</span>
 								</button>
 								<button class="delete-btn text-gray-400 hover:text-red-500 transition-colors" data-timer-id="${timer.id}">
 									<span class="material-symbols-outlined">close</span>
@@ -479,6 +511,7 @@
 							</div>
 						</div>
 						<div class="text-center mb-2">
+							${timer.label ? `<div class="text-xs font-medium text-blue-500 mb-1">${timer.label}</div>` : ''}
 							<div class="main-display text-l font-bold text-gray-800" id="display-${timer.id}">${formatTimeString(timeLeft)}</div>
 						</div>
 						<div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden shadow-inner">
@@ -543,6 +576,7 @@
 		};
 
 		const editTimer = (timerId) => {
+			editingTimerId = timerId; // Store a timer if we are editing
 			const timer = timers.find(t => t.id === timerId);
 			if (!timer) return;
 
@@ -551,21 +585,24 @@
 			const time = formatTime(timeLeft);
 
 			createTimerModal.classList.remove('hidden');
+			cloneTimerButton.classList.remove('hidden');
 
+			labelInput.value = timer.label || '';
 			daysInput.value = time.d;
-			document.getElementById('hoursInput').value = time.h;
-			document.getElementById('minutesInput').value = time.m;
-			document.getElementById('secondsInput').value = time.s;
+			hoursInput.value = time.h;
+			minutesInput.value = time.m;
+			secondsInput.value = time.s;
 			document.getElementById('multiplierSelect').value = timer.multiplier;
 
 			daysInput.select();
 		};
 
-		startButton.addEventListener('click', () => {
+		const saveTimer = () => {
+			const label = labelInput.value.trim();
 			const days = parseInt(daysInput.value) || 0;
-			const hours = parseInt(document.getElementById('hoursInput').value) || 0;
-			const minutes = parseInt(document.getElementById('minutesInput').value) || 0;
-			const seconds = parseInt(document.getElementById('secondsInput').value) || 0;
+			const hours = parseInt(hoursInput.value) || 0;
+			const minutes = parseInt(minutesInput.value) || 0;
+			const seconds = parseInt(secondsInput.value) || 0;
 			const multiplier = parseFloat(document.getElementById('multiplierSelect').value);
 
 			const totalSeconds = (days * 86400) + (hours * 3600) + (minutes * 60) + seconds;
@@ -577,24 +614,29 @@
 
 			const actualDuration = Math.floor(totalSeconds / multiplier);
 			const startTime = Date.now();
-			const endTime = startTime + (actualDuration * 1000);
 
-			//preserving nextTimerID after load is important so deleted id's are not re-used
 			const timer = {
 				startTime,
-				endTime,
+				endTime: startTime + (actualDuration * 1000),
 				duration: actualDuration,
-				multiplier
+				multiplier,
+				label
 			};
 
-			timers.push(timer);
+			if (editingTimerId !== null) {
+				Object.assign(timers.find(t => t.id === editingTimerId), timer);
+				editingTimerId = null; // Clear it
+			} else {
+				timers.push(timer);
+			}
 
 			saveState(saveRaw=true);
 
 			initCards();
 
 			createTimerModal.classList.add('hidden');
-		});
+			openCreateButton.focus();
+		};
 
 		const deleteTimer = (timerId) => {
 			timers = timers.filter(t => t.id !== timerId);
@@ -656,6 +698,17 @@
 			return [];
 		};
 
+		startButton.addEventListener('click', saveTimer);
+
+		cloneTimerButton.addEventListener('click', () => {
+			editingTimerId = null;
+			try {
+				saveTimer();
+			} catch (e) {
+				console.error('Error calling saveTimer:', e);
+			}
+		});
+
 		importButton.addEventListener('click', () => {
 			dataModalTitle.textContent = 'Import Timers';
 			exportDataContainer.classList.add('hidden');
@@ -670,6 +723,7 @@
 			document.execCommand('copy');
 			dataModal.classList.add('hidden');
 			showMessage('Copied to clipboard!');
+			openCreateButton.focus();
 		});
 
 		function initCards() {
@@ -683,7 +737,6 @@
 					const card = createTimerCard(timer);
 					timersContainer.appendChild(card);
 				});
-				startGlobalInterval();
 
 				setInterval(() => {
 					formatTimersDo();
@@ -818,6 +871,8 @@
 						dataModal.classList.add('hidden');
 						//todo add an optional timer fade to showMessage
 						//showMessage('Timers imported successfully!', 5000);
+
+						openCreateButton.focus();
 					} else {
 						showMessage('Invalid timer data format.');
 					}
